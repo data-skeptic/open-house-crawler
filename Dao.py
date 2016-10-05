@@ -100,7 +100,10 @@ class Dao(object):
 
     def extract_bucket_name(self, url):
         tld = tldextract.extract(url)
-        bucket_name = tld.subdomain + '.' + tld.domain + '.' + tld.suffix
+        if tld.subdomain != '' and tld.subdomain != 'www':
+            bucket_name = tld.subdomain + '.' + tld.domain + '.' + tld.suffix
+        else:
+            bucket_name = tld.domain + '.' + tld.suffix
         return bucket_name
 
     def get_filename(self, url):

@@ -103,6 +103,8 @@ def process_content(content):
 dao = Dao.Dao(access_key, secret_key, bucket_name)
 crawler = Crawler.Crawler(dao, expiration_rules, parse_detail_page, process_content)
 
-rootpage = 'http://www.everyhome.com/Homes-For-Sale-By-Listing-Date/Mercer-County-New-Jersey'
-crawler.process_queue([rootpage])
+#rootpage = 'http://www.everyhome.com/Homes-For-Sale-By-Listing-Date/Mercer-County-New-Jersey'
 
+def lambda_handler(event, context):
+	crawler.process_queue(event['queue'], verbose=True)
+	

@@ -38,8 +38,9 @@ def parse_detail_page(b):
         addr_rows = b.findAll('td', {'class': 'addr'})
         addr = ' '.join(map(lambda x: x.getText(), addr_rows))
         t = tables[0]
-        #df = pd.read_html(str(t))[0]
-        #data = dict(zip(df[0], df[1]))
+        df = pd.read_html(str(t))[0]
+        data = dict(zip(df[0], df[1]))
+        /*
         html = lxml.html.fromstring(str(t))
         rows = html.cssselect("tr")
         col0 = []
@@ -49,6 +50,7 @@ def parse_detail_page(b):
             col0.append(cells[0].text_content())
             col1.append(cells[1].text_content())
         data = dict(zip(col0, col1))
+        */
         prop['raw_address'] = addr
         prop['bedrooms'] = int(data['Bedrooms'])
         prop['bathrooms'] = float(data['Full Baths'] + '.' + data['Partial Baths'])

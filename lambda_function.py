@@ -2,6 +2,7 @@ import boto3
 import zipfile
 import gzip
 import json
+import pandas as pd
 import datetime
 import BeautifulSoup as soup
 

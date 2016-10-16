@@ -2,7 +2,7 @@ import boto3
 import zipfile
 import gzip
 import json
-import pandas as pd
+import lxml
 import datetime
 import BeautifulSoup as soup
 
@@ -31,15 +31,24 @@ expiration_rules = {
 def parse_detail_page(b):
     prop = {'raw_address': '', 'bedrooms': -1, 'bathrooms': -1, "size_units": 'I', 'building_size': -1, 'price': -1, 'car_spaces': -1, 'listing_type': 'F', 'features': []}
     other_fields = ['Age', 'Association', 'Basement', 'Cooling', 'Fireplaces', 'Garages', 'Heating', 'Pool', 'Sewer', 'Taxes (Year)', 'Water']
-    # TODO: use the extended fields
+    # TODO: use the extended fields, add them to the list of properties
     tables = b.findAll('table', {'class': 'cell'})
     if len(tables) > 0:
         prop['listing_timestamp'] = datetime.datetime.now()
         addr_rows = b.findAll('td', {'class': 'addr'})
         addr = ' '.join(map(lambda x: x.getText(), addr_rows))
         t = tables[0]
-        df = pd.read_html(str(t))[0]
-        data = dict(zip(df[0], df[1]))
+        #df = pd.read_html(str(t))[0]
+        #data = dict(zip(df[0], df[1]))
+        html = lxml.html.fromstring(str(t))
+        rows = html.cssselect("tr")
+        col0 = []
+        col1 = []
+        for row in rows:
+            cells = row.cssselect("td")
+            col0.append(cells[0].text_content())
+            col1.append(cells[1].text_content())
+        data = dict(zip(col0, col1))
         prop['raw_address'] = addr
         prop['bedrooms'] = int(data['Bedrooms'])
         prop['bathrooms'] = float(data['Full Baths'] + '.' + data['Partial Baths'])
@@ -51,9 +60,6 @@ def parse_detail_page(b):
                 prop['car_spaces'] = float(data['Parking'].replace('Cars', '').replace('Car', '').replace(' ', ''))
             except ValueError:
                 prop['car_spaces'] = -1
-        #for of in other_fields:
-        #    if data.has_key(of):
-        #        prop['features'].append({of: data[of]})
         return [prop]
     else:
         return None

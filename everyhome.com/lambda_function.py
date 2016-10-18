@@ -2,8 +2,8 @@ import boto3
 import zipfile
 import gzip
 import json
-import lxml
 import datetime
+import pandas as pd
 import BeautifulSoup as soup
 
 print('Loading function')
@@ -91,6 +91,9 @@ def process_content(b):
             resp['links'].append(link)
     return resp
 
+def myconverter(o):
+    if isinstance(o, datetime.datetime):
+        return o.__str__()
 
 def handler(event, context):
     results = []
@@ -106,4 +109,4 @@ def handler(event, context):
         urls = process_content(b)['links']
         result = {"properties": props, "urls": urls}
         results.append(result)
-    return results
+    return {"msg": "thank you", "success": True}

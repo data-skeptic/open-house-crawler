@@ -6,7 +6,7 @@ import datetime
 import pandas as pd
 import BeautifulSoup as soup
 
-import api_push
+import ../util/api_push
 
 print('Loading function')
 
@@ -100,7 +100,7 @@ def handler(event, context):
         props = parse_detail_page(b)
         urls = process_content(b)['links']
         result = {"properties": props, "urls": urls}
-        # Push to API
+        push(props) # ../utils/api_push.py
         # On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}

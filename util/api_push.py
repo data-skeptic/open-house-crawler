@@ -11,7 +11,7 @@ from itertools import izip
 ############################
 # AQUIRING TOKEN
 
-def push():
+def push(homes):
 	user     = os.getenv('api_user')
 	passwd   = os.getenv('api_passwd')
 	baseurl  = os.getenv('api_baseurl')
@@ -51,32 +51,21 @@ def push():
 	success_count = 0
 
 	result = {"start": str(datetime.datetime.now())}
-	row = ?
-	d1 = row['sale_timestamp']
-	d2 = str(pd.to_datetime(d1))
-	data = {"listing_timestamp": d2,
-		"listing_type": row['listing_type'],
-		"bathrooms": row['bathrooms'],
-		"bedrooms": row['bedrooms'],
-		"price": row['price'],
-		"building_size": row['sqft'],
-		"size_units": 'I',
-		"raw_address": row['raw_address']
-	   }
-	if geocode_status != 'none' and failsafe_retries >= 0:
-		try:
-			location = encoder.geocode(data['raw_address'])
-			data['geocoded_address'] = location.address
-			data['lat'] = location.latitude
-			data['lon'] = location.longitude
-			data['rawjson'] = location.raw
-		except:
-			failsafe_retries -= 1
-			if geocode_status == 'failsafe' and failsafe_retries < 0:
-				geocode_status = 'none'
-			if geocode_status == 'failsecure':
-				print("ERROR: Problems with geocoding")
-				sys.exit(1)
+	for home in homes:
+		if geocode_status != 'none' and failsafe_retries >= 0:
+			try:
+				location = encoder.geocode(home['raw_address'])
+				home['geocoded_address'] = location.address
+				home['lat'] = location.latitude
+				home['lon'] = location.longitude
+				home['rawjson'] = location.raw
+			except:
+				failsafe_retries -= 1
+				if geocode_status == 'failsafe' and failsafe_retries < 0:
+					geocode_status = 'none'
+				if geocode_status == 'failsecure':
+					print("ERROR: Problems with geocoding")
+					sys.exit(1)
 	retries = line_retries
 	failure = True
 	while retries >= 0 and overall_retries >= 0 and failure:

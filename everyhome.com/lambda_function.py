@@ -6,6 +6,8 @@ import datetime
 import pandas as pd
 import BeautifulSoup as soup
 
+import api_push
+
 print('Loading function')
 
 s3 = boto3.resource('s3')
@@ -40,17 +42,6 @@ def parse_detail_page(b):
         t = tables[0]
         df = pd.read_html(str(t))[0]
         data = dict(zip(df[0], df[1]))
-        /*
-        html = lxml.html.fromstring(str(t))
-        rows = html.cssselect("tr")
-        col0 = []
-        col1 = []
-        for row in rows:
-            cells = row.cssselect("td")
-            col0.append(cells[0].text_content())
-            col1.append(cells[1].text_content())
-        data = dict(zip(col0, col1))
-        */
         prop['raw_address'] = addr
         prop['bedrooms'] = int(data['Bedrooms'])
         prop['bathrooms'] = float(data['Full Baths'] + '.' + data['Partial Baths'])
@@ -97,6 +88,7 @@ def myconverter(o):
 
 def handler(event, context):
     results = []
+
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -108,5 +100,7 @@ def handler(event, context):
         props = parse_detail_page(b)
         urls = process_content(b)['links']
         result = {"properties": props, "urls": urls}
+        # Push to API
+        # On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}

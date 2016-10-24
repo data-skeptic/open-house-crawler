@@ -105,15 +105,16 @@ def handler(event, context):
         content = o["content"]
         b = soup.BeautifulSoup(content)
         props = parse_detail_page(b)
-        print(["Num properties", len(props)])
-        if len(props) > 0:
-            api_result = push(conf['api_user'], conf['api_passwd'], conf['api_baseurl'], props) # ../utils/api_push.py
-            # TODO: On fail, send alert and save to S3
-        urls = process_content(b)['links']
-        if len(urls) > 0:
-            sqs = boto3.resource('sqs')
-            queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
-            queue.send_message(MessageBody=json.dumps(urls))
+        if props != None:
+            print(["Num properties", len(props)])
+            if len(props) > 0:
+                api_result = push(conf['api_user'], conf['api_passwd'], conf['api_baseurl'], props) # ../utils/api_push.py
+                # TODO: On fail, send alert and save to S3
+            urls = process_content(b)['links']
+            if len(urls) > 0:
+                sqs = boto3.resource('sqs')
+                queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
+                queue.send_message(MessageBody=json.dumps(urls))
     return {"msg": "thank you", "success": True}
 
 if __name__ == "__main__":

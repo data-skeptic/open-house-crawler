@@ -86,7 +86,6 @@ def myconverter(o):
         return o.__str__()
 
 def handler(event, context):
-    results = []
     f = open('api_creds.conf', 'r')
     lines = f.readlines()
     f.close()
@@ -107,12 +106,12 @@ def handler(event, context):
         b = soup.BeautifulSoup(content)
         props = parse_detail_page(b)
         api_result = push(conf['api_user'], conf['api_passwd'], conf['api_baseurl'], props) # ../utils/api_push.py
-        urls = process_content(b)['links']
-        sqs = boto3.resource('sqs')
-        queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
-        queue.send_message(MessageBody=json.dumps(urls))
         # TODO: On fail, send alert and save to S3
-        results.append(result)
+        urls = process_content(b)['links']
+        if len(urls) > 0:
+            sqs = boto3.resource('sqs')
+            queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
+            queue.send_message(MessageBody=json.dumps(urls))
     return {"msg": "thank you", "success": True}
 
 if __name__ == "__main__":

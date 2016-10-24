@@ -16,7 +16,7 @@ def push(homes):
 	passwd   = os.getenv('api_passwd')
 	baseurl  = os.getenv('api_baseurl')
 	waittime = 0.05
-	geocode  = 'failsafe'
+	geocode_status  = 'failsafe'
 
 	# After this many retries in failsafe mode, give up on geocoding client side
 	failsafe_retries = 5
@@ -66,61 +66,50 @@ def push(homes):
 				if geocode_status == 'failsecure':
 					print("ERROR: Problems with geocoding")
 					sys.exit(1)
-	retries = line_retries
-	failure = True
-	while retries >= 0 and overall_retries >= 0 and failure:
-		failure = False
-		try:
-			headers = {"Authorization": "Bearer " + token}
-			time.sleep(waittime)
-			p = requests.post(baseurl + '/api/property/', data=data, headers=headers)
-			if p.status_code == 201:
-				success_count += 1
-			else:
-				failure = True
-				fail_count += 1
-				f.write(p.content)
-			overall_retries = ceiling_overall_retries
-		except UnboundLocalError:
-			failure = True
-		if failure:
-			retries -= 1
-			overall_retries -= 1
-			msg = "ERROR [line " + str(i) + "]"
-			if retries >= 0 and overall_retries >= 0:
-				msg += " (going to retry)\n"
-			msg += json.dumps(data).replace('\n', '')
-			f.write(msg)
-			terminal_error = False
+		retries = line_retries
+		failure = True
+		while retries >= 0 and overall_retries >= 0 and failure:
+			failure = False
 			try:
-				detail = json.loads(p.content)
-				if 'detail' in detail.keys() and detail['detail'] == 'You do not have permission to perform this action.':
-					msg = 'Your account does not have write access.  Please contact kyle@dataskeptic.com'
-					f.write(msg)
-					print(msg)
-					terminal_error = True
-			except:
-				pass
-			if terminal_error:
-				sys.exit(1)
-	if failure:
-		giveup_count += 1
-	if overall_retries < 0:
-		msg = "Quitting due to too many failures\n"
-		f.write(msg)
-		print(msg)
+				headers = {"Authorization": "Bearer " + token}
+				time.sleep(waittime)
+				p = requests.post(baseurl + '/api/property/', data=home, headers=headers)
+				if p.status_code == 201:
+					success_count += 1
+				else:
+					failure = True
+					fail_count += 1
+				overall_retries = ceiling_overall_retries
+			except UnboundLocalError:
+				failure = True
+			if failure:
+				retries -= 1
+				overall_retries -= 1
+				msg = "ERROR [line " + str(i) + "]"
+				if retries >= 0 and overall_retries >= 0:
+					msg += " (going to retry)\n"
+				msg += json.dumps(data).replace('\n', '')
+				terminal_error = False
+				try:
+					detail = json.loads(p.content)
+					if 'detail' in detail.keys() and detail['detail'] == 'You do not have permission to perform this action.':
+						msg = 'Your account does not have write access.  Please contact kyle@dataskeptic.com'
+						print(msg)
+						terminal_error = True
+				except:
+					pass
+				if terminal_error:
+					sys.exit(1)
+		if failure:
+			giveup_count += 1
+		if overall_retries < 0:
+			msg = "Quitting due to too many failures\n"
+			print(msg)
 
 	msg = "Successfully uploaded: " + str(success_count)
-	f.write(msg + '\n')
 	print(msg)
-
 	msg = "Failures experienced: " + str(fail_count)
-	f.write(msg + '\n')
 	print(msg)
-
 	msg = "Unrecovered failures: " + str(giveup_count)
-	f.write(msg + '\n')
 	print(msg)
-
-	f.close()
 	return result

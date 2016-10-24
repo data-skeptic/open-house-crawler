@@ -88,7 +88,6 @@ def myconverter(o):
 def handler(event, context):
     print("handler")
     results = []
-
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -101,8 +100,8 @@ def handler(event, context):
         props = parse_detail_page(b)
         urls = process_content(b)['links']
         result = {"properties": props, "urls": urls}
-        push(props) # ../utils/api_push.py
-        # On fail, send alert and save to S3
+        api_result = push(props) # ../utils/api_push.py
+        # TODO: On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}
 

@@ -94,7 +94,6 @@ def handler(event, context):
     for line in lines:
         k,v = line.split('=')
         conf[k] = v.strip()
-    print([conf['api_baseurl'], conf['api_user']])
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -106,9 +105,11 @@ def handler(event, context):
         content = o["content"]
         b = soup.BeautifulSoup(content)
         props = parse_detail_page(b)
-        urls = process_content(b)['links']
-        result = {"properties": props, "urls": urls}
         api_result = push(conf['api_user'], conf['api_passwd'], conf['api_baseurl'], props) # ../utils/api_push.py
+        urls = process_content(b)['links']
+        sqs = boto3.resource('sqs')
+        queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
+        queue.send_message(MessageBody=json.dumps(urls))
         # TODO: On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}

@@ -93,7 +93,7 @@ def handler(event, context):
     conf = {}
     for line in lines:
         k,v = line.split('=')
-        conf[k] = v
+        conf[k] = v.strip()
     print([conf['api_baseurl'], conf['api_user']])
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']

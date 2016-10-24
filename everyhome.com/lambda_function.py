@@ -94,7 +94,7 @@ def handler(event, context):
     for line in lines:
         k,v = line.split('=')
         conf[k] = v
-    print(conf)
+    print([conf['api_baseurl'], conf['api_user']])
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']

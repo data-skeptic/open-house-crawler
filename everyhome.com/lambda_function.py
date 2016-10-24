@@ -94,13 +94,13 @@ def handler(event, context):
     for line in lines:
         k,v = line.split('=')
         conf[k] = v
+    print(conf)
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
         if key[0]=='/':
             key = key[1:]
         fname = '/tmp/content.json'
-        print([bucket, key, fname])
         s3_client.download_file(bucket, key, fname)
         o = json.load(open(fname, 'r'))
         content = o["content"]

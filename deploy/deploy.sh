@@ -21,9 +21,9 @@ zip ~/deps.zip *.py
 cd ../util/
 zip -r ~/deps.zip api_push.py
 
-echo api_user=$api_user > api_creds.txt
-echo api_passwd=$api_passwd >> api_creds.txt
-echo api_base_url=$api_baseurl >> api_creds.txt
+echo api_user=$api_user > api_creds.conf
+echo api_passwd=$api_passwd >> api_creds.conf
+echo api_baseurl=$api_baseurl >> api_creds.conf
 zip -r ~/deps.zip api_creds.conf
 rm -f api_creds.conf
 

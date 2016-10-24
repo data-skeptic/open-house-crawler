@@ -100,6 +100,7 @@ def handler(event, context):
         if key[0]=='/':
             key = key[1:]
         fname = '/tmp/content.json'
+        print([bucket, key])
         s3_client.download_file(bucket, key, fname)
         o = json.load(open(fname, 'r'))
         content = o["content"]

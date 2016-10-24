@@ -25,6 +25,7 @@ echo api_user=$api_user > api_creds.txt
 echo api_passwd=$api_passwd >> api_creds.txt
 echo api_base_url=$api_baseurl >> api_creds.txt
 zip -r ~/deps.zip api_creds.txt
+rm -f api_creds.conf
 
 cd /usr
 

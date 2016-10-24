@@ -86,8 +86,14 @@ def myconverter(o):
         return o.__str__()
 
 def handler(event, context):
-    print("handler")
     results = []
+    f = open('api_creds.txt', 'r')
+    lines = f.readlines()
+    f.close()
+    conf = {}
+    for line in lines:
+        k,v = line.split('=')
+        conf[k] = v
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
@@ -102,7 +108,7 @@ def handler(event, context):
         props = parse_detail_page(b)
         urls = process_content(b)['links']
         result = {"properties": props, "urls": urls}
-        api_result = push(props) # ../utils/api_push.py
+        api_result = push(conf['api_user'], conf['api_passwd'], conf['api_baseurl'], props) # ../utils/api_push.py
         # TODO: On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}

@@ -8,16 +8,7 @@ import time
 import pandas as pd
 from itertools import izip
 
-############################
-# AQUIRING TOKEN
-
-def push(homes):
-	user     = os.getenv('api_user')
-	passwd   = os.getenv('api_passwd')
-	baseurl  = os.getenv('api_baseurl')
-	waittime = 0.05
-	geocode_status  = 'failsafe'
-	print([user, baseurl])
+def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe'):
 	# After this many retries in failsafe mode, give up on geocoding client side
 	failsafe_retries = 5
 

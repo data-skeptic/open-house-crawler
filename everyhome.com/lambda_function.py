@@ -87,7 +87,7 @@ def myconverter(o):
 
 def handler(event, context):
     results = []
-    f = open('api_creds.txt', 'r')
+    f = open('api_creds.conf', 'r')
     lines = f.readlines()
     f.close()
     conf = {}

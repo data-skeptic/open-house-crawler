@@ -20,6 +20,12 @@ sed -i -e 's/..\/util\/api_push/api_push/g' lambda_function.py
 zip ~/deps.zip *.py
 cd ../util/
 zip -r ~/deps.zip api_push.py
+
+echo api_user=$api_user > api_creds.txt
+echo api_passwd=$api_passwd >> api_creds.txt
+echo api_base_url=$api_baseurl >> api_creds.txt
+zip -r ~/deps.zip api_creds.txt
+
 cd /usr
 
 for dir in lib64/python2.7/site-packages \

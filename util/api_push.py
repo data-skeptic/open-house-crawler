@@ -17,7 +17,7 @@ def push(homes):
 	baseurl  = os.getenv('api_baseurl')
 	waittime = 0.05
 	geocode_status  = 'failsafe'
-
+	print([user, baseurl])
 	# After this many retries in failsafe mode, give up on geocoding client side
 	failsafe_retries = 5
 
@@ -26,7 +26,6 @@ def push(homes):
 
 	# If you have too many failures in a row without any success, stop.  Reset to this count on one success.
 	ceiling_overall_retries = 10
-
 
 	r = requests.post(baseurl + '/token/auth/', data={"username":user, "password":passwd})
 	j = r.json()

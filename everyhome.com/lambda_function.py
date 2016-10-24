@@ -6,7 +6,7 @@ import datetime
 import pandas as pd
 import BeautifulSoup as soup
 
-import ../util/api_push
+from api_push import push
 
 print('Loading function')
 
@@ -27,7 +27,7 @@ expiration_rules = {
     }
 }
 
-# This function should take the raw string content of a page, process it, and return the 
+# This function should take the raw string content of a page, process it, and return the
 # desired data structure, or None if something goes wrong (like no content on the page)
 
 def parse_detail_page(b):
@@ -63,23 +63,22 @@ def process_content(b):
     """Extract further links to crawl from the raw content of a page
     """
     resp = {'content_fail': True, 'links': []}
-    if content != '':
-        resp['content_fail'] = False
-        # Look for other pages with links to links to listings
-        select = b.find('select')
-        if select != None:
-            options = select.findAll('option')
-            if len(options) > 0:
-                others = map(lambda x: x.get('value'), options)
-                resp['links'].extend(others)
-        # Look for other pages with links to listings
-        days = b.findAll('a', {'class': 'days_whch'})
-        resp['links'].extend(map(lambda day: day.get('href'), days))
-        # Look for properties pages
-        properties = b.findAll('td', {'class': 'addr_pcct'})
-        for prop in properties:
-            link = prop.find('a').get('href')
-            resp['links'].append(link)
+    resp['content_fail'] = False
+    # Look for other pages with links to links to listings
+    select = b.find('select')
+    if select != None:
+        options = select.findAll('option')
+        if len(options) > 0:
+            others = map(lambda x: x.get('value'), options)
+            resp['links'].extend(others)
+    # Look for other pages with links to listings
+    days = b.findAll('a', {'class': 'days_whch'})
+    resp['links'].extend(map(lambda day: day.get('href'), days))
+    # Look for properties pages
+    properties = b.findAll('td', {'class': 'addr_pcct'})
+    for prop in properties:
+        link = prop.find('a').get('href')
+        resp['links'].append(link)
     return resp
 
 def myconverter(o):
@@ -87,12 +86,14 @@ def myconverter(o):
         return o.__str__()
 
 def handler(event, context):
+    print("handler")
     results = []
 
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
         fname = '/tmp/content.json'
+        print([bucket, key, fname])
         s3_client.download_file(bucket, key, fname)
         o = json.load(open(fname, 'r'))
         content = o["content"]
@@ -104,3 +105,8 @@ def handler(event, context):
         # On fail, send alert and save to S3
         results.append(result)
     return {"msg": "thank you", "success": True}
+
+if __name__ == "__main__":
+    event = json.load(open('test.json', 'r'))
+    context = None
+    handler(event, context)

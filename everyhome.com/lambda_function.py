@@ -91,6 +91,8 @@ def handler(event, context):
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
+        if key[0]=='/':
+            key = key[1:]
         fname = '/tmp/content.json'
         print([bucket, key, fname])
         s3_client.download_file(bucket, key, fname)

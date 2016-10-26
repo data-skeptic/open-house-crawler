@@ -108,7 +108,7 @@ if [ $EXISTS = 0 ]; then
 				\"Filter\": { \
 					\"Key\": { \
 						\"FilterRules\": [ \
-							{\"Name\": \"prefix\", \"Value\": \"everyhome.com\"}, \
+							{\"Name\": \"prefix\", \"Value\": \"$TLD\"}, \
 							{\"Name\": \"suffix\", \"Value\": \"content.json\"} \
 						] \
 					} \

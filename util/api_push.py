@@ -41,6 +41,7 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 	success_count = 0
 
 	result = {"start": str(datetime.datetime.now())}
+	i=0
 	for home in homes:
 		if geocode_status != 'none' and failsafe_retries >= 0:
 			try:
@@ -71,6 +72,8 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 					fail_count += 1
 				overall_retries = ceiling_overall_retries
 			except UnboundLocalError:
+				print("UnboundLocalError when calling API")
+				print(home)
 				failure = True
 			if failure:
 				retries -= 1
@@ -90,6 +93,7 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 					pass
 				if terminal_error:
 					sys.exit(1)
+		i += 1
 		if failure:
 			giveup_count += 1
 		if overall_retries < 0:

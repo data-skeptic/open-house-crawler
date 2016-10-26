@@ -15,7 +15,11 @@ expiration_rules = {}
 
 def parse_detail_page(b):
     s = b.getText()
+    print("s")
+    print(s)
     outer = json.loads(s)
+    print("outer")
+    print(outer)
     o = json.loads(outer['content'])
     properties = []
     for feature in o['features']:

@@ -2,6 +2,7 @@ import boto3
 import zipfile
 import gzip
 import json
+import os
 import datetime
 import pandas as pd
 import BeautifulSoup as soup
@@ -15,11 +16,13 @@ expiration_rules = {}
 
 def parse_detail_page(b):
     s = b.getText()
-    outer = json.loads(s)
-    o = json.loads(outer)
+    o = json.loads(s)
     properties = []
     for feature in o['features']:
         prop = feature['attributes']
+        lt = prop['FORMATTED_SALEDATE']
+        lt = lt[6:10] + "-" + lt[0:2] + "-" + lt[3:5] + "T00:00"
+        # add : {'year_built': prop['YEARBUILT']}
         p = {'raw_address': prop['SAADDR'] + ' ' + prop['SAADDR2']
          , 'bedrooms': prop['BATHROOMS']
          , 'bathrooms': prop['BEDROOMS']
@@ -28,13 +31,14 @@ def parse_detail_page(b):
          , 'price': prop['SALEPRICE']
          , 'car_spaces': -1
          , 'listing_type': 'F'
-         , 'features': [{'year_built': prop['YEARBUILT']}]
+         , 'listing_timestamp': lt
+         , 'features': []
         }
         properties.append(p)
     return properties
 
 def process_content(b):
-    resp = {'content_fail': False, 'links': []}
+    return {'content_fail': False, 'links': []}
 
 def handler(event, context):
     f = open('api_creds.conf', 'r')
@@ -42,16 +46,18 @@ def handler(event, context):
     f.close()
     conf = {}
     for line in lines:
-        k,v = line.split('=')
-        conf[k] = v.strip()
+        line = line.strip()
+        if line != "":
+          k,v = line.split('=')
+          conf[k] = v.strip()
     for record in event['Records']:
         bucket = record['s3']['bucket']['name']
         key = record['s3']['object']['key']
         if key[0]=='/':
             key = key[1:]
         fname = '/tmp/content.json'
-        print([bucket, key])
-        s3_client.download_file(bucket, key, fname)
+        if not(os.path.exists(fname)):
+            s3_client.download_file(bucket, key, fname)
         o = json.load(open(fname, 'r'))
         content = o["content"]
         b = soup.BeautifulSoup(content)

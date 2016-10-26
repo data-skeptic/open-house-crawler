@@ -11,13 +11,10 @@ from itertools import izip
 def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe'):
 	# After this many retries in failsafe mode, give up on geocoding client side
 	failsafe_retries = 5
-
 	# For every single entry, do this many retries before moving on
 	line_retries = 2
-
 	# If you have too many failures in a row without any success, stop.  Reset to this count on one success.
 	ceiling_overall_retries = 10
-
 	r = requests.post(baseurl + '/token/auth/', data={"username":user, "password":passwd})
 	j = r.json()
 	if r.status_code != 200:
@@ -26,20 +23,15 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 			return {"errors": errors}
 		else:
 			return {"errors": ['Cannot get token from API']}
-
 	if not('token' in j.keys()):
 		return {"errors": "ERROR: Got 200 response but it does not contain a token"}
-
 	token = j['token']
-
 	if geocode_status != 'none':
 		encoder = GoogleV3()
-
 	overall_retries = ceiling_overall_retries
 	fail_count = 0
 	giveup_count = 0
 	success_count = 0
-
 	result = {"start": str(datetime.datetime.now())}
 	i=0
 	for home in homes:
@@ -73,15 +65,15 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 				overall_retries = ceiling_overall_retries
 			except UnboundLocalError:
 				print("UnboundLocalError when calling API")
-				print(home)
 				failure = True
 			if failure:
 				retries -= 1
 				overall_retries -= 1
+				print(home)
 				msg = "ERROR [line " + str(i) + "]"
 				if retries >= 0 and overall_retries >= 0:
 					msg += " (going to retry)\n"
-				msg += json.dumps(home).replace('\n', '')
+				print(msg)
 				terminal_error = False
 				try:
 					detail = json.loads(p.content)
@@ -99,7 +91,6 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 		if overall_retries < 0:
 			msg = "Quitting due to too many failures\n"
 			print(msg)
-
 	msg = "Successfully uploaded: " + str(success_count)
 	print(msg)
 	msg = "Failures experienced: " + str(fail_count)

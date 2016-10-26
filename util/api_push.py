@@ -81,7 +81,7 @@ def push(user, passwd, baseurl, homes, waittime=0.05, geocode_status='failsafe')
 				msg = "ERROR [line " + str(i) + "]"
 				if retries >= 0 and overall_retries >= 0:
 					msg += " (going to retry)\n"
-				msg += json.dumps(data).replace('\n', '')
+				msg += json.dumps(home).replace('\n', '')
 				terminal_error = False
 				try:
 					detail = json.loads(p.content)

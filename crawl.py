@@ -55,7 +55,7 @@ def get_expiration(url, expiration_rules):
             exp = sw[prefix]
     return exp
 
-def crawl_one(url, expiration_rules):
+def crawl_one(url, expiration_rules, headers):
     allowed = robots.allowed(url, user_agent)
     if allowed:
         print 'Crawling', url
@@ -64,7 +64,7 @@ def crawl_one(url, expiration_rules):
         failure_tollerance=2
         while not(success) and failure_tollerance > 0:
             try:
-                r = requests.get(url)
+                r = requests.get(url, headers)
                 time.sleep(sleep_time)
                 if r.status_code==200:
                     content = r.content
@@ -82,7 +82,7 @@ def crawl_one(url, expiration_rules):
         obj = {}
     return obj
 
-def process_one(url, s3, expiration_rules):
+def process_one(url, s3, expiration_rules, headers):
 	bucket = get_bucket(url)
 	s3key = get_s3_key(url)
 	try:
@@ -100,13 +100,30 @@ def process_one(url, s3, expiration_rules):
 		exists = False
 	if not(exists):
 		print('Processing: ' + url)
-		crawl = crawl_one(url, expiration_rules)
+		crawl = crawl_one(url, expiration_rules, headers)
 		contents = json.dumps(crawl, default=json_util.default)
 		fake_handle = StringIO(contents)
 		res = s3.Bucket(bucket).put_object(Key=s3key, Body=fake_handle)
 		# TODO: check for errors
 		return True
 	return False
+
+def get_headers(url):
+	headers = {}
+	if url.startswith('https://www.portlandmaps.com'):
+		headers = {
+			'Pragma': 'no-cache',
+			'Accept-Encoding': 'gzip, deflate, sdch, br',
+			'Accept-Language': 'en-US,en;q=0.8',
+			'User-Agent': 'OpenHouse crawler',
+			'Content-Type': 'application/x-www-form-urlencoded',
+			'Accept': '*/*',
+			'Cache-Control': 'no-cache',
+			'X-Requested-With': 'XMLHttpRequest',
+			'Connection': 'keep-alive',
+			'Referer': 'https://www.portlandmaps.com/detail/property/',
+		}
+	return headers
 
 def process_queue(urls, s3, expiration_rules):
 	start = datetime.datetime.utcnow()
@@ -116,7 +133,8 @@ def process_queue(urls, s3, expiration_rules):
 		url = urls.pop()
 		done = cache.has_key(url)
 		if not(done):
-			did_work = process_one(url, s3, expiration_rules)
+			headers = get_headers(url)
+			did_work = process_one(url, s3, expiration_rules, headers)
 			if did_work:
 				count += 1
 			cache[url] = True

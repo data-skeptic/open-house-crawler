@@ -76,7 +76,7 @@ def crawl_one(url, expiration_rules):
                 time.sleep(60*10)
         # TODO: Better error handing for 400, 500, etc.
         exp = get_expiration(url, expiration_rules)
-        obj = {'expiration': exp, 'content': content, 'cache_date': datetime.datetime.now(), 'http_response': r.status_code}
+        obj = {'expiration': exp, 'content': content, 'url': url, 'cache_date': datetime.datetime.now(), 'http_response': r.status_code}
     else:
         # TODO: better error handling
         obj = {}

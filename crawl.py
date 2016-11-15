@@ -64,7 +64,7 @@ def crawl_one(url, expiration_rules, headers):
         failure_tollerance=2
         while not(success) and failure_tollerance > 0:
             try:
-                r = requests.get(url, headers)
+                r = requests.get(url, headers=headers)
                 time.sleep(sleep_time)
                 if r.status_code==200:
                     content = r.content

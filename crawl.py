@@ -11,10 +11,27 @@ import requests
 from bson import json_util
 from cStringIO import StringIO
 import decimal
+import logging
+import sys
+
+logname = sys.argv[0]
+
+logger = logging.getLogger(logname)
+formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
+logger.setLevel(logging.INFO)
+
+hdlr = logging.FileHandler('/var/tmp/' + logname + '.log')
+hdlr.setFormatter(formatter)
+logger.addHandler(hdlr) 
+
+stdout = logging.StreamHandler()
+stdout.setFormatter(formatter)
+logger.addHandler(stdout)
 
 s3 = boto3.resource('s3')
 sqs = boto3.resource('sqs')
 queue = sqs.get_queue_by_name(QueueName='OH-crawler-url-queue')
+ses = boto3.client('ses')
 
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table("crawl-logs")
@@ -29,11 +46,11 @@ class DecimalEncoder(json.JSONEncoder):
                 return int(o)
         return super(DecimalEncoder, self).default(o)
 
-table = dynamodb.Table('crawl-logs')
 
 robots = RobotsCache()
 user_agent='OpenHouseProject.co crawler'
 sleep_time=.9
+bucket = 'oh-crawl'
 
 expiration_rules = {
     'default': datetime.datetime.now() + datetime.timedelta(days=1),
@@ -42,26 +59,6 @@ expiration_rules = {
       , 'http://www.everyhome.com/Homes-For-Sale-By-Listing-Date/Listed-on-': datetime.datetime(2099, 1, 1)
     }
 }
-
-def get_bucket(url):
-    tld = tldextract.extract(url)
-    base = 'open-house-crawl-'
-    if tld.subdomain != '' and tld.subdomain != 'www':
-        bucket_name = base + tld.subdomain + '.' + tld.domain + '.' + tld.suffix
-    else:
-        bucket_name = base + tld.domain + '.' + tld.suffix
-    return bucket_name
-
-def get_s3_key(url):
-    tld = tldextract.extract(url)
-    if tld.subdomain != '' and tld.subdomain != 'www':
-        tldname = tld.subdomain + '.' + tld.domain + '.' + tld.suffix
-    else:
-        tldname = tld.domain + '.' + tld.suffix
-    m = hashlib.md5()
-    m.update(url)
-    key = m.hexdigest()
-    return tldname + '/' + key + '/content.json'
 
 def get_expiration(url, expiration_rules):
     exp = expiration_rules['default']
@@ -75,64 +72,67 @@ def get_expiration(url, expiration_rules):
 def crawl_one(url, expiration_rules, headers):
     try:
         allowed = robots.allowed(url, user_agent)
-    except reppy.exceptions.ConnectionException:
+    except:
         allowed = True
     if allowed:
-        print 'Crawling', url
+        logger.info('Crawling: ' + url)
         success = False
         content = ''
-        failure_tollerance=2
         r = None
-        while not(success) and failure_tollerance > 0:
+        try:
+            r = requests.get(url, headers=headers, timeout=3)
+            time.sleep(sleep_time)
+            if r.status_code==200:
+                content = r.content
+            success = True
+            sm = decimal.Decimal(2)
+        except:
+            logger.error('Sleeping due to Connection error')
+            time.sleep(10*1)
             try:
-                r = requests.get(url, headers=headers, timeout=3)
-                time.sleep(sleep_time)
-                if r.status_code==200:
-                    content = r.content
-                success = True
-                try:
-                    crawl_seeds_table.update_item(
-                        Key={
-                            'uri': url
-                        },
-                        UpdateExpression="set #sm = :val",
-                        ExpressionAttributeNames={
-                            '#sm': 'status-mask'
-                        },
-                        ExpressionAttributeValues={
-                            ':val': decimal.Decimal(2)
-                        },
-                        ReturnValues="UPDATED_NEW"
-                    )
-                except botocore.exceptions.ClientError:
-                    print("Could not update record")
-            except requests.exceptions.ConnectionError:
-                print 'Sleeping due to Connection error'
-                failure_tollerance -= 1
-                time.sleep(10*1)
-        # TODO: Better error handing for 400, 500, etc.
+                sm = decimal.Decimal(r.status_code)
+            except:
+                sm = decimal.Decimal(3)
+            success = False
+        try:
+            crawl_seeds_table.update_item(
+                Key={
+                    'uri': url
+                },
+                UpdateExpression="set #sm = :val",
+                ExpressionAttributeNames={
+                    '#sm': 'status-mask'
+                },
+                ExpressionAttributeValues={
+                    ':val': sm
+                },
+                ReturnValues="UPDATED_NEW"
+            )
+        except:
+            # TODO: Better error handing for 400, 500, etc.
+            logger.error("Could not update record")
         exp = get_expiration(url, expiration_rules)
         if r == None:
-        	sc = 404
+            sc = 404
         else:
             sc = r.status_code
-        obj = {'expiration': exp, 'content': content, 'url': url, 'cache_date': datetime.datetime.now(), 'http_response': sc}
+        obj = {'allowed': allowed, 'expiration': exp, 'content': content, 'url': url, 'cache_date': datetime.datetime.now(), 'http_response': sc}
     else:
         # TODO: better error handling
-        obj = {}
+        obj = {"allowed": allowed}
     return obj
 
 def process_one(url, s3, expiration_rules, headers):
-    bucket = get_bucket(url)
     tld = tldextract.extract(url)
     if tld.subdomain != '' and tld.subdomain != 'www':
         tld = tld.subdomain + '.' + tld.domain + '.' + tld.suffix
     else:
         tld = tld.domain + '.' + tld.suffix
-    s3key = get_s3_key(url)
+    i = url.find(tld)
+    s3key = tld + url[i+len(tld):]
+    exp = get_expiration(url, expiration_rules)
     try:
         o = s3.ObjectSummary(bucket, s3key)
-        exp = get_expiration(url, expiration_rules)
         lm = o.last_modified
         now = datetime.datetime.utcnow()
         diff = exp - now
@@ -144,7 +144,7 @@ def process_one(url, s3, expiration_rules, headers):
     except botocore.exceptions.ClientError as e:
         exists = False
     if not(exists):
-        print('Processing: ' + url)
+        logger.info('Processing: ' + url)
         crawl = crawl_one(url, expiration_rules, headers)
         contents = json.dumps(crawl, default=json_util.default)
         fake_handle = StringIO(contents)
@@ -214,6 +214,7 @@ def process_queue(urls, s3, expiration_rules):
     start = datetime.datetime.utcnow()
     count = 0
     cache = {}
+    ourls = list(urls)
     while len(urls) > 0:
         url = urls.pop()
         done = cache.has_key(url)
@@ -222,25 +223,57 @@ def process_queue(urls, s3, expiration_rules):
             try:
                 did_work = process_one(url, s3, expiration_rules, headers)
             except botocore.exceptions.ClientError:
-                print("error with " + url)
+                logger.error("error with " + url)
                 did_work = 0
             if did_work:
                 count += 1
             cache[url] = True
     end = datetime.datetime.utcnow()
-    print('Found and processed ' + str(count) + ' unique pages in ' + str(end - start))
+    logger.info('Found and processed ' + str(count) + ' unique pages in ' + str(end - start))
+    return {"urls": ourls, "count": count, "duration": end - start}
 
-did_work = True
+if __name__ == "__main__":
+    logger.info("Start")
+    did_work = True
+    results = []
+    while did_work:
+        msgs = queue.receive_messages()
+        logger.info("Got messages of length " + str(len(msgs)))
+        did_work = False
+        for msg in msgs:
+            did_work = True
+            s = msg.body
+            o = json.loads(s)
+            urls = o
+            logger.info(urls)
+            resp = process_queue(urls, s3, expiration_rules)
+            results.append(resp)
+            res = msg.delete()
+        if not(did_work):
+            time.sleep(60)
+    #
+    sub = 'Crawl results'
+    for i in range(len(results)):
+        results[i]['duration'] = str(results[i]['duration'])
+    response = ses.send_email(
+        Source='kyle@dataskeptic.com',
+        Destination={'ToAddresses': ['kylepolich@gmail.com']},
+        Message={
+            'Subject': {
+                'Data': sub
+            },
+            'Body': {
+                'Text': {
+                    'Data': json.dumps(results, default=json_util.default)
+                }
+            }
+        },
+        ReplyToAddresses=['kyle@dataskeptic.com']
+    )
 
-while did_work:
-    msgs = queue.receive_messages()
-    did_work = False
-    for msg in msgs:
-        did_work = True
-        s = msg.body
-        o = json.loads(s)
-        urls = o
-        process_queue(urls, s3, expiration_rules)
-        res = msg.delete()
-    if not(did_work):
-        time.sleep(60)
+
+
+
+
+
+

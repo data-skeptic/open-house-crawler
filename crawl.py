@@ -255,21 +255,22 @@ if __name__ == "__main__":
     sub = 'Crawl results'
     for i in range(len(results)):
         results[i]['duration'] = str(results[i]['duration'])
-    response = ses.send_email(
-        Source='kyle@dataskeptic.com',
-        Destination={'ToAddresses': ['kylepolich@gmail.com']},
-        Message={
-            'Subject': {
-                'Data': sub
-            },
-            'Body': {
-                'Text': {
-                    'Data': json.dumps(results, default=json_util.default)
+    if len(results) > 0:
+        response = ses.send_email(
+            Source='kyle@dataskeptic.com',
+            Destination={'ToAddresses': ['kylepolich@gmail.com']},
+            Message={
+                'Subject': {
+                    'Data': sub
+                },
+                'Body': {
+                    'Text': {
+                        'Data': json.dumps(results, default=json_util.default)
+                    }
                 }
-            }
-        },
-        ReplyToAddresses=['kyle@dataskeptic.com']
-    )
+            },
+            ReplyToAddresses=['kyle@dataskeptic.com']
+        )
 
 
 

@@ -249,8 +249,6 @@ if __name__ == "__main__":
             resp = process_queue(urls, s3, expiration_rules)
             results.append(resp)
             res = msg.delete()
-        if not(did_work):
-            time.sleep(60)
     #
     sub = 'Crawl results'
     for i in range(len(results)):
